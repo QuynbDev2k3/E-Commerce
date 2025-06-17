@@ -1,0 +1,38 @@
+﻿@using Project.Common
+@using Project.DbManagement.Entity;
+@model Project.DbManagement.Entity.ProductEntity;
+<div class="product__item sale">
+    <div class="product__item__pic set-bg" data-setbg="@Model.ImageUrl" style="background-size: contain; background-repeat: no-repeat;">
+        
+        <ul class="product__hover">
+            <li><a href="@Model.ImageUrl" class="image-popup"><span class="arrow_expand"></span></a></li>
+            @* <li><a href="#"><span class="icon_heart_alt"></span></a></li> *@
+            @* <li><a href="#"><span class="icon_bag_alt"></span></a></li> *@
+        </ul>
+    </div>
+    <div class="product__item__text">
+        <h6><a asp-controller="ProductDetails" asp-action="ProductDetails" asp-route-id="@Model.Id">@Model.Name</a></h6>
+        @{
+            decimal ConvertToDecimal(string priceStr)
+            {
+                decimal.TryParse(priceStr, out var result);
+                return result;
+            }
+
+            var variants = Model.VariantObjs ?? new List<Variant>();
+
+            var minPriceVariant = variants
+            .OrderBy(v => ConvertToDecimal(v.Price))
+            .FirstOrDefault();
+
+            var maxPriceVariant = variants
+            .OrderByDescending(v => ConvertToDecimal(v.Price))
+            .FirstOrDefault();
+        }
+        <div class="cart__price" style="font-size: 14px; color: red;">
+            @(minPriceVariant != null ? minPriceVariant.Price + " VNĐ -" : "Hết hàng")
+            @(maxPriceVariant != null ? maxPriceVariant.Price + " VNĐ" : "")
+
+        </div>
+    </div>
+</div>

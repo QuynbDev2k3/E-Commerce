@@ -1,0 +1,576 @@
+﻿@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Project.DbManagement
+@using Project.DbManagement.Entity
+@using Project.DbManagement.ViewModels
+@{
+    ViewData["Title"] = "Bán hàng tại quầy";
+    var lstBill = ViewData["lstBill"] as List<BillEntity>;
+    var loginInfor = new UserEntity();
+    string? session = Context.Session.GetString("LoginInfor");
+    if (session != null)
+    {
+        loginInfor = JsonConvert.DeserializeObject<UserEntity>(Context.Session.GetString("LoginInfor"));
+    }
+    string status = null;
+    string amount = null;
+    string txnRef = null;
+    bool hasVnPayResult = false;
+    long amountParsed = 0;
+
+    if (TempData["VnPayStatus"] != null)
+    {
+        hasVnPayResult = true;
+        status = TempData["VnPayStatus"].ToString();
+        amount = TempData["VnPayAmount"].ToString();
+        txnRef = TempData["VnPayTxnRef"].ToString();
+        long.TryParse(amount, out amountParsed);
+    }
+}
+
+<style>
+    .vnpay-modal-overlay {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    .vnpay-modal-content {
+        background: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        font-family: Arial, sans-serif;
+    }
+    .vnpay-modal-content button {
+        margin-top: 20px;
+        padding: 8px 16px;
+        border: none;
+        background: #007bff;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+
+
+@if (hasVnPayResult)
+{
+    <div id="vnPayModal" class="vnpay-modal-overlay" style="display: flex;">
+        <div class="vnpay-modal-content">
+            <h2 style="color:@(status == "success" ? "green" : "red")">
+                @(status == "success" ? "✅ Thanh toán thành công!" : "❌ Thanh toán thất bại")
+            </h2>
+            <p><strong>Mã đơn hàng:</strong> @txnRef</p>
+            <p><strong>Số tiền:</strong> @(amountParsed / 100)VND</p>
+
+            <button onclick="closeModal()">Đóng</button>
+        </div>
+    </div>
+}
+
+<div class="d-flex flex-row align-items-stretch" style="background: #343a40; height: 875px; border-radius:5px;">
+    <!--Hiển thị giỏ hàng-->
+    <div class="d-flex flex-column align-items-stretch flex-grow-1" style="padding-bottom: 10px;">
+        <div class="d-flex flex-row text-white w-100 flex-shrink-1" style="background-color: #343a40;height:50px;">
+            <!--Hiển thị danh sách hóa đơn chờ-->
+            <div class="tabbill">
+                <div class="icon me-auto"><i id="left" class="fa-solid fa-angle-left"></i></div>
+                @if (lstBill != null)
+                {
+                    <ul class="tabs-box">
+                        @{
+                            var index = 1;
+                            foreach (var item in lstBill)
+                            {
+                                <li class="tab" onclick="gethdct('@item.Id')">
+                                    <span value="@item.Id">
+                                        <a>Bill @index</a>
+                                        <a style="padding-left: 10px;" onclick="deletePDBill('@item.Id')"><i
+                                                class="fas fa-times"></i></a>
+                                    </span>
+                                </li>
+                                index++;
+                            }
+                        }
+                    </ul>
+                }
+                @* <div class="icon ms-auto"><i id="right" class="fa-solid fa-angle-right"></i></div> *@
+            </div>
+            <!--Tạo mới-->
+            <div class="align-content-center" style="margin-top: 5px; margin-left: 10px;">
+                <div class="btn-create d-flex align-items-center">
+                    <button type="button" onclick="addPDBill()" class=""
+                            title="Thêm mới">
+                        <i class="bi bi-plus-square"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!--Hiển thị hóa đơn chi tiết-->
+        <div class="d-flex flex-column p-2 mx-3 mt-3 border-0 rounded-3 flex-grow-1 bg-white" style="background-color: white; color: black; height:640px;">
+            <div class="d-flex flex-column p-2">
+                <div id="partialCart">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Sản phẩm-->
+    <div class="d-flex flex-column align-items-stretch" style="height: 900px;">
+        <!--Tìm kiếm sản phẩm-->
+        <div class="d-flex flex-column text-white w-100" style="height:50px; background-color: #343a40; border-radius:5px;">
+            <div class="d-flex justify-content-start">
+                <div class="search-product d-flex align-items-center">
+                    <div class="search-bar">
+                        <form class="search-form d-flex align-items-center" style="margin-top: 9px;">
+                            <input type="text" id="searchProductInput" name="query" placeholder="Nhập tên sản phẩm hoặc mã sản phẩm"
+                                   title="Enter search keyword">
+                            <button type="" title="Tìm kiếm"><i class="bi bi-search"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--Hiển thị sản phẩm-->
+        <div class="d-flex flex-column p-2  mt-3 border-0 rounded-3 bg-white" style="height:800px; margin-right: 15px">
+            <ul class="product-list" id="product-list">
+            </ul>
+            <div class="d-flex flex-row bg-light mt-auto" style="justify-content:center">
+                <div class="mx-2" id="pagingsp">
+                    <ul id="pagination-demo" class="pagination-sm"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--MODEL-->
+<!--Model thanh toán -->
+<div class="modal border-0 rounded-0" id="thanhtoan" tabindex="-1">
+    <div class="modal-dialog" id="modalthanhtoan">
+        <div class="modal-content" id="modalthanhtoan-content">
+            <div class="modal-header" style="background-color: #343a40">
+                <h5 class="modal-title fw-700 text-white align-center" style="margin-left: 230px;">THANH TOÁN</h5>
+            </div>
+            <div class="modal-body" id="thanhtoanbody">
+            </div>
+        </div>
+    </div>
+</div>
+<!--Model sản phẩm-->
+<div class="modal border-0 rounded-0" id="sanpham" tabindex="-1">
+    <div class="modal-dialog" id="modalsanpham">
+        <div class="modal-content" id="modalsanpham-content">
+            <div class="modal-header" style="background-color: #343a40">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="sanphambody">
+            </div>
+            <div class="modal-footer" style="background-color: #343a40; height: 50px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    var pageSizesp = 8;// Tối đa 10sp 1 trang
+    var pageIndexsp = 1;//Trang ban đầu
+    var idempl = '@loginInfor.Id';
+    $(document).ready(function () {
+        LoadProduct();
+        // Sự kiện input khi người dùng nhập vào ô tìm kiếm
+        $("#searchProductInput").on("input", function () {
+            searchProduct();  // Gọi hàm searchProduct khi người dùng nhập
+        });
+        activeTab(0);
+        $(function () {
+            $(document).on("click", ".tab", function (e) {
+                e.preventDefault();
+                $(".tab").removeClass("active");
+                $(this).addClass("active");
+            });
+        });
+    })
+
+    //TabActive
+    function activeTab(index) {
+        var allTabs = $(".tabs-box .tab");
+        if (allTabs.length !== 0 && index == 0) {
+            var tab = allTabs.first();
+            var elementValue = tab.find("span").attr("value");
+            gethdct(elementValue);
+            tab.addClass("active");
+        } else if (index == 1) {
+            var tab = allTabs.last();
+            var elementValue = tab.find("span").attr("value");
+            gethdct(elementValue);
+            tab.addClass("active");
+        }
+    }
+
+    //LoadDSSanPham
+    function LoadProduct() {
+        $.ajax({
+            url: "/SellOff/LoadProduct",
+            type: "GET",
+            data: {
+                page: pageIndexsp,
+                pagesize: pageSizesp,
+            },
+            dataType: "json",
+            success: function (response) {
+                $(".product-list").empty();
+                for (let i = 0; i < response.data.length; i++) {
+                    $(".product-list").append(`
+                                                    <li class="product-item d-flex flex-row" onclick="showProductDetail('${response.data[i].id}')">
+                                                            <div class="product-img">
+                                                                <img src="${response.data[i].image}" class="img-fluid rounded-start" alt="...">
+                                                            </div>
+                                                            <div class="product-detail d-flex flex-column flex-grow-1">
+                                                                <span class="product-name mt-1">${response.data[i].productCode}</span>
+                                                                <span class="product-name mt-1">${response.data[i].name}</span>
+                                                                <div class="product-infor mt-auto">
+                                                                    <span style="flex-basis:100%"><b style="color:#ff0000;font-size:14px; font-weight:700">${response.data[i].price.toLocaleString()}</b></span>
+                                                                </div>
+                                                            </div>
+                                                    </li>
+                                                    `);
+                }
+                pagingsp(response.total, function () {
+                    LoadProduct();
+                });
+            },
+            error: function (err) {
+                console.log('Error:', err);
+            }
+        });
+    }
+
+    //Phân trang sp
+    function pagingsp(totalrow, callback) {
+        var totalgages = Math.ceil(totalrow / pageSizesp);
+        $("#pagingsp").twbsPagination({
+            totalPages: totalgages,
+            visiblePages: 5,
+            onPageClick: function (event, page) {
+                pageIndexsp = page;
+                setTimeout(callback, 200);
+            }
+        });
+    }
+    
+    // Search san pham
+    function searchProduct() {
+        var keyword = $("#searchProductInput").val().trim();  // Lấy từ khóa tìm kiếm
+        if (keyword === "") {
+            // Nếu không có keyword thì load lại sản phẩm bình thường
+            $("#pagingsp").show();  // hiện lại phân trang
+            LoadProduct(pageIndexsp);
+            return;
+        }
+
+        // Có keyword thì ẩn phân trang đi
+        $("#pagingsp").hide();
+        $.ajax({
+            url: "/SellOff/SearchProduct",  // Đổi URL thành SearchProduct
+            type: "GET",
+            data: {
+                page: pageIndexsp,
+                pagesize: pageSizesp,
+                keyword: keyword  // Truyền từ khóa vào
+            },
+            dataType: "json",
+            success: function (response) {
+                $(".product-list").empty();
+                for (let i = 0; i < response.data.length; i++) {
+                    $(".product-list").append(`
+                    <li class="product-item d-flex flex-row" onclick="showProductDetail('${response.data[i].id}')">
+                        <div class="product-img">
+                            <img src="${response.data[i].image}" class="img-fluid rounded-start" alt="...">
+                        </div>
+                        <div class="product-detail d-flex flex-column flex-grow-1">
+                            <span class="product-name mt-1">${response.data[i].productCode}</span>
+                            <span class="product-name mt-1">${response.data[i].name}</span>
+                            <div class="product-infor mt-auto">
+                                <span style="flex-basis:100%"><b style="color:#ff0000;font-size:14px; font-weight:700">${response.data[i].price.toLocaleString()}</b></span>
+                            </div>
+                        </div>
+                    </li>
+                `);
+                }
+
+                // Gọi phân trang
+                pagingsp(response.total, function () {
+                    searchProduct();  // Cập nhật lại trang khi phân trang
+                });
+            },
+            error: function (err) {
+                console.log('Error:', err);
+            }
+        });
+    }
+
+    //LOAD DANH SÁCH HOA DON CHO
+    async function loadPDBill(callback) {
+        try {
+            const data = await $.ajax({
+                url: "/SellOff/GetAllPDBill",
+                type: "GET",
+                dataType: "json"
+            });
+            $(".tabs-box").empty();
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+                const itemID = item.id;
+                const index = i + 1;
+                $(".tabs-box").append(`
+                <li class="tab" onclick="gethdct('${itemID}')">
+                    <span value="${itemID}">
+                    <a>Bill ${index}</a>
+                    <a style="padding-left: 10px;" onclick="deletePDBill('${itemID}')"><i class="fas fa-times"></i></a>
+                    </span>
+                </li>
+                `);
+            }
+            setTimeout(callback, 50);
+        } catch (error) {
+            console.log('Error:', error);
+        }
+    }
+
+    //THÊM HÓA ĐƠN CHỜ
+    function addPDBill() {
+        $.ajax({
+            url: `/SellOff/CreateBill/@loginInfor.Id`,
+            type: "POST",
+            dataType: 'json',
+            contentType: 'application/json',
+            success: function (response) {
+                console.log(response);
+                toastr.success('Thêm hóa đơn thành công', "Thông báo", {timeOut: 1000});
+                loadPDBill(function () {
+                    activeTab(1);
+                });
+            },
+            error: function (response) {
+                toastr.error('Thêm hóa đơn thất bại', "Thông báo", {timeOut: 1000});
+            }
+        });
+    }
+    
+    // Thông báo VNPay thành công
+    window.onload = function () {
+        var modal = document.getElementById("vnPayModal");
+        if (modal) {
+            modal.style.display = "flex";
+        }
+    };
+    function closeModal() {
+        document.getElementById("vnPayModal").style.display = "none";
+        var status = '@status';
+        if (status == "success") {
+            var id = '@txnRef';
+            var totalprice = '@amountParsed';
+            var employeeId = '@loginInfor.Id';
+            thanhToanVnpay(id, totalprice, employeeId);
+        }
+    }
+
+    function thanhToanVnpay(id, totalprice, employeeId) {
+        var request = {
+            Id: id,
+            PaymentMethod: 'VNPay',
+            IdEmployee: employeeId,
+            TotalPrice: totalprice
+        };
+
+        $.ajax({
+            url: "/SellOff/ThanhToan",
+            async: false,
+            type: 'POST',
+            dataType: 'json',
+            data: request,
+            success: function (response) {
+                $("#partialCart").empty();
+                toastr.success('Thanh toán VNPay thành công', "Thông báo", { timeOut: 300 });
+                loadPDBill(function () {
+                    activeTab(0);
+                });
+            },
+            error: function (response) {
+                toastr.error('Lưu đơn sau VNPay thất bại', 'Thông báo', { timeOut: 300 });
+            }
+        });
+    }
+
+
+    //Xóa hóa đơn chờ
+    function deletePDBill(idBill) {
+        Swal.fire({
+            title: 'Bạn chắc chứ?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Vâng, xóa đi!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "/SellOff/DeleteBill/" + idBill,
+                    type: "DELETE",
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    success: function (response) {
+                        $("#partialCart").empty();
+                        loadPDBill(function () {
+                            activeTab(0);
+                        });
+                        LoadProduct();
+                        toastr.success('Xóa hóa đơn thành công', 'Thông báo', { timeOut: 1000 });
+                    },
+                    error: function (response) {
+                        toastr.error('Xóa hóa đơn thất bại', 'Thông báo', { timeOut: 1000 });
+                    }
+                });
+            }
+        });
+    }
+
+
+    //Thêm SP vào Hóa đơn
+    function addCTSP(idprd, price, color, size) {
+        var activeTab = $(".tabs-box .tab").filter(".active");
+        var elementValue = activeTab.find("span").attr("value");
+        var request = {IdBill: elementValue, IdProduct: idprd, IdEmployee: idempl, Price: price, Quantity: 1, Color: color, size: size}
+        $.ajax({
+            url: "/SellOff/AddProductToCart/",
+            async: false,
+            type: 'POST',
+            dataType: 'json',
+            data: request,
+            success: function (response) {
+                if (response.success == true) {
+                    toastr.success('Thêm sản phẩm thành công', "Thông báo", {timeOut: 300});
+                    gethdct(request.IdBill);
+                    FilterPL();
+                } else {
+                    toastr.error('Thêm sản phẩm thất bại', 'Thông báo', {timeOut: 300});
+                }
+            },
+            error: function (response) {
+                toastr.error('Thêm sa phẩm thất bại', 'Thông báo', {timeOut: 300});
+            }
+        });
+    }
+
+    //CHI TIET HOA DON
+    //LAY HOA DON CHI TIET THEO IDHOADON
+
+    function gethdct(idhd) {
+        $("#partialCart").load("/SellOff/GetPDBill/" + idhd);
+    }
+
+    //Xóa HDCT
+    function deleteHDCT(idbilldetails, idbill) {
+        Swal.fire({
+            title: 'Bạn chắc chứ?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Vâng, xóa đi!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/SellOff/DeleteBillDetails/` +idbilldetails,
+                    type: 'DELETE',
+                    dataType: 'json',
+                    success: function (response) {
+                        toastr.success('Xóa sản phẩm thành oông', 'Thông báo', { timeOut: 1000 });
+                        gethdct(idbill)
+                    },
+                    error: function (response) {
+                        toastr.error('Xóa sản phẩm thất bại', 'Thông báo', { timeOut: 1000 });
+                    }
+                });
+            }
+        });
+    }
+
+    //Mở chi tiết sản phẩm
+    function showProductDetail(idprd) {
+        $("#sanphambody").load("/SellOff/ShowProductDetail/" + idprd);
+        $("#sanpham").modal("show");
+    }
+
+    //Thanh toán chuyển trạng thái
+    function thanhToan(id) {
+        Swal.fire({
+            title: 'Bạn chắc chứ?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                var tongtien = $("#tongTien").text().trim();
+                if (parseInt(tongtien) <= 0) {
+                    toastr.error('Không có sản phẩm nào trong giỏ hàng', 'Thông báo', {timeOut: 1000});
+                    return;
+                }
+                var paymentmethod = $('input[name="pttt"]:checked').val();
+                if (paymentmethod == "Tiền mặt"){
+                    var checkAm = $("#tienTraLai").text();
+                    if (parseInt(checkAm) < 0) {
+                        toastr.warning('Số tiền khách trả không đủ', 'Thông báo', {timeOut: 1000});
+                        return;
+                    }
+                }
+                var tongtien = $("#tongTien").text().trim();
+                var totalprice = parseInt(tongtien.replace(/[,.]/g, ""), 10) || 0;
+                var idCustomer = document.getElementById("idkh").textContent.trim();
+                var request = {
+                    Id: id,
+                    PaymentMethod: paymentmethod,
+                    IdEmployee: '@loginInfor.Id',
+                    IdCustomer: idCustomer,
+                    TotalPrice: totalprice,
+                };
+                $.ajax({
+                    url: "/SellOff/ThanhToan",
+                    async: false,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: request,
+                    success: function (response) {
+                        $("#thanhtoan").modal("hide");
+                        $("#partialCart").empty();
+                        toastr.success('Thanh toán thành công', "Thông báo", {timeOut: 1000});
+                        loadPDBill(function () {
+                            activeTab(0);
+                        });
+                    },
+                    error: function (response) {
+                        toastr.error('Thanh toán thất bại', 'Thông báo', {timeOut: 1000});
+                    }
+                });
+            }
+        });
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

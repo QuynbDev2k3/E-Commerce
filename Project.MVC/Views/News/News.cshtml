@@ -1,0 +1,75 @@
+﻿@model List<Project.DbManagement.Entity.ContentBase>?
+
+@{
+    ViewData["Title"] = "Tin tức";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentPageSize = ViewBag.PageSize != null ? (int)ViewBag.PageSize : 6;
+    var nextPageSize = currentPageSize + 6;
+}
+
+<!-- Breadcrumb Begin -->
+<div class="breadcrumb-option">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="breadcrumb__links">
+                    <a asp-controller="Home" asp-action="Index"><i class="fa fa-home"></i>Trang chủ</a>
+                    <span>Blog</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Breadcrumb End -->
+<!-- Blog Section Begin -->
+<section class="blog spad">
+    <div class="container">
+
+        <div class="row" id="news-container">
+            @Html.Partial("_NewsItemsPartial", Model)
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12 text-center mt-4">
+                <button id="load-more-btn" class="primary-btn load-btn">Tải thêm bài viết</button>
+            </div>
+        </div>
+
+    </div>
+</section>
+<!-- Blog Section End -->
+<!-- Instagram Begin -->
+<!-- Instagram End -->
+@section Scripts {
+    <script>
+        let currentPage = 1;
+        const pageSize = 6;
+
+        document.getElementById("load-more-btn").addEventListener("click", function () {
+            currentPage++;
+
+            fetch(`/News/LoadMoreNews?page=${currentPage}&pageSize=${pageSize}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    const container = document.getElementById("news-container");
+                    container.insertAdjacentHTML("beforeend", html);
+
+                    // Xử lý hiển thị ảnh cho các phần tử .set-bg
+                    document.querySelectorAll('.set-bg').forEach(function (el) {
+                        const bg = el.getAttribute('data-setbg');
+                        if (bg) {
+                            el.style.backgroundImage = 'url(' + bg + ')';
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error("Lỗi khi tải bài viết:", error);
+                });
+        });
+    </script>
+}

@@ -1,0 +1,367 @@
+﻿@using Project.Business.Model
+@using Project.Common
+@using Project.MvcModule.Models
+@model ProductDetailsViewModel;
+@{
+    ViewData["Title"] = "Chi tiết sản phẩm";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<!-- Breadcrumb Begin -->
+<div class="breadcrumb-option">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="breadcrumb__links">
+                    <a asp-controller="Home" asp-action="Index"><i class="fa fa-home"></i>Trang chủ</a>
+      
+                    <span>Trang sản phẩm</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Breadcrumb End -->
+<!-- Product Details Section Begin -->
+<section class="product-details spad">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="product__details__pic">
+                    @{
+                        var mediaObjs = Model.Product.MediaObjs;
+                        var selectedMediaObjs = new List<string>();
+
+                        if (mediaObjs != null && mediaObjs.Count > 0)
+                        {
+                            var count = mediaObjs.Count;
+
+                            if (count >= 4)
+                            {
+                                var step = count / 4;
+                                for (int i = 0; i < count; i += step)
+                                {
+                                    selectedMediaObjs.Add(mediaObjs[i]);
+                                }
+                            }
+                            else
+                            {
+                                selectedMediaObjs.Add(Model.Product.ImageUrl);
+                            }
+                        }
+                        else
+                        {
+                            selectedMediaObjs.Add(Model.Product.ImageUrl);
+                        }
+                    }
+
+                    <div class="product__details__pic__left product__thumb nice-scroll">
+                        @for (int i = 0; i < selectedMediaObjs.Count; i++)
+                        {
+                            <a class="pt @(i == 0 ? "active" : "")" href="#product-1">
+                                <img src="@selectedMediaObjs[i]" alt="" />
+                            </a>
+                        }
+                    </div>
+                    <div class="product__details__slider__content">
+                        <div class="product__details__pic__slider owl-carousel">
+                            @foreach (var imgUrl in selectedMediaObjs)
+                            {
+                                <img data-hash="product-1" class="product__big__img" src="@imgUrl" alt="" />
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="product__details__text">
+                   <h3>@Model.Product.Name</h3> 
+                    <div class="rating">
+                    </div>
+                    <p>@Model.Product.Description</p>
+                    <div class="product__details__widget">
+                        <div class="variant-selector">
+                            <div class="group">
+                                <label class="group-label">Giá Tiền</label>
+                                <div class="quantity-selector">
+                                    <span id="price" class="border-secondary rounded px-2 py-1 d-inline-block bg-light"></span>
+                                </div>
+
+                                <label class="group-label mt-1">Kho </label>
+                                <span id="stock-value" class="ml-1">0</span>
+                            </div>
+
+                            <div class="group">
+                                <label class="group-label">Màu Sắc</label>
+                                <div class="options" id="color-options">
+
+                                    @{
+                                        var colorVariants = Model.Product.VariantObjs?
+                                        .Where(x => x.Stock != 0)
+                                        .Select(y => y.Group1)
+                                        .Distinct()
+                                        .ToList() ?? new List<string>();
+
+                                        if (colorVariants != null)
+                                        {
+                                            foreach (var item in colorVariants)
+                                            {
+                                                <button class="option" data-value="@item">
+                                                    <img src="@(Model.Product.VariantObjs.FirstOrDefault(x => x.Group1 == item)?.ImgUrl ?? string.Empty)" alt="@item" style="max-width:40px; max-height:40px;" />
+                                                    @item
+                                                </button>
+                                            }
+                                        }
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="group">
+                                <label class="group-label">Kích Cỡ</label>
+                                <div class="options" id="size-options">
+
+                                    @{
+                                        var sizeVariants = Model.Product.VariantObjs?
+                                        .Where(x => x.Stock != 0)
+                                        .Select(y => y.Group2)
+                                        .Distinct()
+                                        .ToList() ?? new List<string>();
+
+                                        if (sizeVariants != null)
+                                        {
+                                            foreach (var item in sizeVariants)
+                                            {
+                                                <button class="option" data-value="@item">
+                                                    @{
+                                                        var check = Model.Product.VariantObjs.Any(x => !string.IsNullOrEmpty(x.Group1));
+                                                        var imgUrl = string.Empty;
+                                                        if (!check)
+                                                        {
+                                                            <img src="@(Model.Product.VariantObjs.FirstOrDefault(x => x.Group2 == item)?.ImgUrl ?? string.Empty)" alt="@item" />
+                                                        }
+                                                    }
+                                                    @item
+                                                </button>
+                                            }
+                                        }
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="group">
+                                <label class="group-label">Số Lượng</label>
+                                <div class="quantity-selector">
+                                    <button id="decrease">−</button>
+                                    <input type="text" id="quantity" value="1" readonly />
+                                    <button id="increase">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product__details__button">
+                        <a href="javascript:void(0);" class="cart-btn"
+                           onclick="addToCart('@Model.Product.Id')"
+                           data-product-id="@Model.Product.Id"
+                           data-product-name="@Model.Product.Name"
+                           data-product-image="@Model.Product.ImageUrl"
+                           data-product-code="@Model.Product.Code"
+                           data-brand="@Model.Product.MetadataObj.GetMetadatavalue("Brand")"
+                           data-category="@Model.Product.MetadataObj.GetMetadatavalue("Category")"
+                           data-description="@Model.Product.Description"
+                           data-size="@Model.Product.MetadataObj.GetMetadatavalue("Size")"
+                           data-color="@Model.Product.MetadataObj.GetMetadatavalue("Color")"
+                           data-color-code="@Model.Product.MetadataObj.GetMetadatavalue("ColorCode")"
+                           data-price="@Model.Product.MetadataObj.GetMetadatavalue("MinPrice")"
+                           data-original-price="@Model.Product.MetadataObj.GetMetadatavalue("OriginalPrice")"
+                           data-discount-price="@Model.Product.MetadataObj.GetMetadatavalue("DiscountPrice")"
+                           data-discount-percent="@Model.Product.MetadataObj.GetMetadatavalue("DiscountPercent")"
+                           data-is-in-stock="@Model.Product.MetadataObj.GetMetadatavalue("IsInStock")"
+                           data-stock-quantity="@Model.Product.MetadataObj.GetMetadatavalue("StockQuantity")"
+                           data-sku="@Model.Product.MetadataObj.GetMetadatavalue("SKU")">
+                            <span class="icon_bag_alt"></span> Thêm vào giỏ hàng
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-12">
+                <div class="product__details__tab">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-toggle="tab" href="#tabs-1" role="tab">Mô tả</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="tab" href="#tabs-2" role="tab">Thông số kỹ thuật</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="tab" href="#tabs-3" role="tab">Đánh giá</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="tabs-1" role="tabpanel">
+                            <h6>Mô tả</h6>
+                            <p>
+                                @Model.Product.Description
+                            </p>
+                        </div>
+                        <div class="tab-pane" id="tabs-2" role="tabpanel">
+                            <h6>Thông số </h6>
+                            <p>
+                                Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut loret fugit, sed
+                                quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt loret.
+                            </p>
+                        </div>
+                        <div class="tab-pane" id="tabs-3" role="tabpanel">
+                            @await Component.InvokeAsync("CommentList", new { productId = Model.Product.Id })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12 text-center">
+                <div class="related__title">
+                    <h5>SẢN PHẨM LIÊN QUAN</h5>
+                </div>
+            </div>
+
+            @await Component.InvokeAsync("BlockProductsByFilter", new BlockProductsByFilterRequestModel()
+       {
+           QueryModel = new ProductQueryModel()
+           {
+               PageSize = 4,
+               MainCategoryId = Model.Product.MainCategoryId
+           },
+           ViewName = "BlockProductsByFilter"
+       })
+        </div>
+    </div>
+</section>
+<!-- Product Details Section End -->
+<!-- Instagram Begin -->
+@await Component.InvokeAsync("SocialMedial");
+<!-- Instagram End -->
+@section Scripts {
+    <script>
+        let selectedColor = '';
+        let selectedSize = '';
+
+        const variants = @Html.Raw(Json.Serialize(
+        Model.Product.VariantObjs
+        .Where(x => x.Stock != 0)
+        .Select(v => new
+        {
+            color = v.Group1,
+            size = v.Group2,
+            price = v.Price,
+            stock = v.Stock,
+            sku = v.Sku
+        })
+    ));
+
+        function updatePrice() {
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const variant = variants.find(v => v.color === selectedColor && v.size === selectedSize);
+
+            if (variant) {
+                const totalPrice = variant.price * quantity;
+                document.getElementById('price').textContent = totalPrice.toLocaleString('vi-VN') + ' đ';
+                document.getElementById('stock-value').textContent = variant.stock;
+            } else {
+                document.getElementById('price').textContent = 'Không khả dụng';
+                document.getElementById('stock-value').textContent = '0';
+            }
+        }
+
+        document.querySelectorAll('#color-options .option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#color-options .option').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedColor = btn.getAttribute('data-value');
+                updatePrice();
+            });
+        });
+
+        document.querySelectorAll('#size-options .option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#size-options .option').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedSize = btn.getAttribute('data-value');
+                updatePrice();
+            });
+        });
+
+        document.getElementById("increase").addEventListener("click", () => {
+            const input = document.getElementById("quantity");
+            let val = parseInt(input.value);
+            const variant = variants.find(v => v.color === selectedColor && v.size === selectedSize);
+            if (!isNaN(val) && variant && val < variant.stock) {
+                input.value = val + 1;
+                updatePrice();
+            }
+        });
+
+        document.getElementById("decrease").addEventListener("click", () => {
+            const input = document.getElementById("quantity");
+            let val = parseInt(input.value);
+            if (!isNaN(val) && val > 1) {
+                input.value = val - 1;
+                updatePrice();
+            }
+        });
+
+        function addToCart(productId) {
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const variant = variants.find(v => v.color === selectedColor && v.size === selectedSize);
+            const priceText = document.getElementById('price').textContent;
+            const priceValue = parseFloat(priceText.replace(/[^\d]/g, '')) || 0;
+
+            const $cartBtn = $('.cart-btn');
+            const productData = {
+                productId: $cartBtn.data('product-id'),
+                productName: $cartBtn.data('product-name'),
+                productImage: $cartBtn.data('product-image'),
+                price: priceValue,
+                quantity: quantity,
+                size: selectedSize || '',
+                color: selectedColor || '',
+                SKU: variant?.sku || ''
+            };
+
+            $.ajax({
+                url: '/Cart/AddToCart',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(productData),
+                success: function (response) {
+                    if (response.success) {
+                        $('.cart-count').text(response.cartCount);
+
+                        Swal.fire({
+                            title: 'Thành công!',
+                            text: response.message,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Xem giỏ hàng',
+                            cancelButtonText: 'Tiếp tục mua'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '/Cart/Cart';
+                            }
+                        });
+                    } else {
+                        Swal.fire("Thất bại", response.message, "error");
+                    }
+                },
+                error: function () {
+                    Swal.fire("Thất bại", "Không thể thêm vào giỏ hàng", "error");
+                }
+            });
+        }
+    </script>
+}
+

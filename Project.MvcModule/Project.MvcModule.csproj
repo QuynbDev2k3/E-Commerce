@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<ItemGroup>
+ 
+		<None Include="Views\**\*">
+			<Pack>True</Pack>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+
+	<Target Name="CopyViewsFiles" BeforeTargets="Build">
+		<Message Text="Copying Views files to Portal" Importance="High" />
+		<ItemGroup>
+			<MySourceFiles Include="Views/**/*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(MySourceFiles)" DestinationFolder="../Project.MVC/Views/%(RecursiveDir)" SkipUnchangedFiles="true" />
+	</Target>
+
+
+	<ItemGroup>
+	  <None Remove="Views\CommentList\_CommentItemsPartial.cshtml" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <Content Include="Views\CommentList\_CommentItemsPartial.cshtml">
+	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controller\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Project.Business\Project.Business.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Views\BlockProductsByFilter\BlockProductsByFilter.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\BlockVoucher\BlockVoucher.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SocialMedial\SocialMedial.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

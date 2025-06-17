@@ -1,0 +1,425 @@
+﻿@model List<Project.Business.Model.CartItemModel>
+@{
+    ViewData["Title"] = "Giỏ hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Breadcrumb Begin -->
+<div class="breadcrumb-option">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="breadcrumb__links">
+                    <a asp-controller="Home" asp-action="Index"><i class="fa fa-home"></i>Trang chủ</a>
+                    <span>Giỏ hàng</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Breadcrumb End -->
+<!-- Shop Cart Section Begin -->
+<section class="shop-cart spad">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                @if (Model == null || !Model.Any())
+                {
+                    <div class="text-center">
+                        <h3>Giỏ hàng của bạn đang trống</h3>
+                        <p>Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm</p>
+                        <a asp-controller="Home" asp-action="Index" class="site-btn mt-4">Tiếp tục mua sắm</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="shop__cart__table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Giá</th>
+                                    <th>Số lượng</th>
+                                    <th>Tổng</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr data-id="@item.ProductId"
+                                        data-size="@item.Size"
+                                        data-color="@item.Color"
+                                        data-product-code="@item.ProductCode"
+                                        data-brand="@item.Brand"
+                                        data-category="@item.Category"
+                                        data-description="@item.Description"
+                                        data-color-code="@item.ColorCode"
+                                        data-original-price="@item.OriginalPrice"
+                                        data-discount-price="@item.DiscountPrice"
+                                        data-discount-percent="@item.DiscountPercent"
+                                        data-is-in-stock="@item.IsInStock"
+                                        data-stock-quantity="@item.IsMax"
+                                        data-sku="@item.SKU">
+                                        <td class="cart__product__item">
+                                            <img src="@item.ProductImage" alt="@item.ProductName" style="max-width: 90px;">
+                                            <div class="cart__product__item__title">
+                                                <h6>@item.ProductName</h6>
+                                                <span>SIZE: @item.Size</span>
+                                                <span>Màu sắc: @item.Color</span>
+                                                <span>SKU: @item.SKU</span>
+                                                @if (item.DiscountPercent > 0)
+                                                {
+                                                    <p class="discount">Giảm giá: @item.DiscountPercent%</p>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="cart__price"
+                                            data-original-price="@(item.OriginalPrice > 0 ? item.OriginalPrice : item.Price)"
+                                            data-discount-price="@(item.DiscountPrice > 0 ? item.DiscountPrice : 0)">
+                                            @if (item.DiscountPrice > 0)
+                                            {
+                                                <span class="original-price">@item.OriginalPrice.ToString("N0") VNĐ</span>
+                                                <span class="discount-price">@item.DiscountPrice.ToString("N0") VNĐ</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="original-price">@item.Price.ToString("N0") VNĐ</span>
+                                            }
+                                        </td>
+                                        <td class="cart__quantity">
+                                            <div class="input-group input-group-sm quantity-selector" style="max-width:150px">
+                                                <button id="button-decrease-@item.SKU-@item.ProductId" class="btn btn-outline-secondary btn-decrease" type="button">−</button>
+                                                <input type="text"
+                                                    style="border:none"
+                                                        readonly
+                                                       class="form-control text-center quantity-input"
+                                                       value="@item.Quantity"
+                                                       data-productprice="@item.Price"
+                                                     />
+                                                <button id="button-increase-@item.SKU-@item.ProductId" class="btn btn-outline-secondary btn-increase" type="button" disabled="@(item.IsMax)">+</button>
+                                            </div>
+                                        </td>
+                                        <td class="cart__total">@item.Total.ToString("N0") VNĐ</td>
+                                        <td class="cart__close">
+                                            <a href="#" class="remove-item" data-id="@item.ProductId" data-sku="@item.SKU">
+                                                <i class="fa fa-close"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6 col-sm-6">
+                            <div class="cart__btn">
+                                <a asp-controller="Home" asp-action="Index">Tiếp tục mua sắm</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="discount__content">
+                                <h6>Mã giảm giá</h6>
+
+                                <!-- Nút mở modal chọn voucher -->
+                                <a id="chooseVoucherBtn" class="site-btn" style="cursor:pointer">
+                                    Chọn mã giảm giá
+                                </a>
+
+                                <!-- Hiển thị voucher đã chọn (không radio) -->
+                                <ul class="list-unstyled mt-3" id="selectedVoucherContainer">
+                                    <li class="text-muted">Chưa chọn voucher nào.</li>
+                                </ul>
+
+                                <!-- Hidden để submit khi checkout -->
+                                <input type="hidden" id="selectedVoucherId" name="SelectedVoucherId" value="" />
+                            </div>
+                        </div>
+                        <div class="col-lg-4 offset-lg-2">
+                            <div class="cart__total__procced">
+                                <h6>Tổng giỏ hàng</h6>
+                                <ul>
+                                    <li>Tạm tính <span id="subtotal">@Model.Sum(x => x.Price * x.Quantity).ToString("N0") VNĐ</span></li>
+                                    <li>Giảm <span id="discount">0 VNĐ</span></li>
+                                    <li>Tổng tiền <span id="total">@Model.Sum(x => x.Price * x.Quantity).ToString("N0") VNĐ</span></li>
+                                </ul>
+                                <a asp-controller="Checkout" asp-action="Index" class="primary-btn">Tiến hành thanh toán</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Shop Cart Section End -->
+<!-- Voucher Modal -->
+<div class="modal fade" id="voucherModal" tabindex="-1" aria-labelledby="voucherModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="voucherModalLabel">Chọn mã giảm giá</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="py-5 text-center">
+                    <div class="spinner-border" role="status"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Trở lại</button>
+                <button type="button" id="confirmVoucherBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+       var cartItems = [];
+
+        $(document).ready(function () {
+
+                $('tbody tr').each(function () {
+        const $row = $(this);
+        cartItems.push({
+            productId: $row.data('id'),
+            sku: $row.data('sku'),
+            quantity: parseInt($row.find('.quantity-input').val()) || 1
+        });
+    });
+
+
+            // Mở modal & nạp danh sách voucher
+            $('#chooseVoucherBtn').on('click', function () {
+
+                const $modal = $('#voucherModal');
+                $modal.find('.modal-body').html(
+                    '<div class="py-5 text-center"><div class="spinner-border"></div></div>'
+                );
+                $modal.modal('show');
+
+                $.get('@Url.Action("UsersVoucher", "Cart")')
+                 .done(html => {
+                     $modal.find('.modal-body').html(html);
+                 })
+                    .fail(xhr => {
+                    // Try to parse JSON error message
+                    let errMsg = "Không tải được danh sách voucher.";
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errMsg = xhr.responseJSON.error;
+                    }
+                    $modal.find('.modal-body').html(
+                        `<p class="text-danger p-4">${errMsg}</p>`
+                    );
+                });
+            });
+
+            // Xác nhận chọn voucher
+            $('#confirmVoucherBtn').on('click', function () {
+                debugger
+                const $checked = $('#voucherModal input[name="SelectedVoucherId"]:checked');
+                if (!$checked.length) {
+                    alert('Vui lòng chọn một voucher.');
+                    return;
+                }
+
+                const voucherId = $checked.val();
+                const $item = $checked.closest('.voucher-item').clone(true, true);
+
+                // Bỏ radio, bỏ alert, bỏ opacity
+                $item.find('input[type="radio"]').remove();
+                $item.find('.alert-warning').remove();
+                $item.removeClass('opacity-50');
+
+                // Hiển thị voucher đã chọn ngoài modal
+                $('#selectedVoucherContainer').html($item);
+
+                // Cập nhật hidden input
+                $('#selectedVoucherId').val(voucherId);
+
+                // Ẩn modal
+                $('#voucherModal').modal('hide');
+
+                // Gọi server tính tiền giảm
+                $.post('@Url.Action("ApplyVoucher", "Cart")', { voucherId })
+                 .done(res => {
+                     if (res.success) {
+                         $('#discount').text(formatCurrency(res.discountAmount) + ' VNĐ');
+
+                         $('#total').text(formatCurrency(res.totalAfterDiscount) + ' VNĐ');
+                     } else {
+                         alert(res.message ?? 'Không áp dụng được voucher');
+                     }
+                 });
+            });
+
+            // Tăng số lượng
+            $(document).on('click', '.btn-increase', function () {
+                var $row = $(this).closest('tr');
+                var $input = $row.find('.quantity-input');
+                var val = parseInt($input.val()) || 0;
+                var max = parseInt($input.attr('max')) || 10000;
+                if (val < max) {
+                    $input.val(val + 1).trigger('change');
+                }
+                const productId = $row.data('id');
+                const sku = $row.data('sku');
+                $.post('/Cart/IncreaseQuantity', { productId: productId, sku: sku })
+                 .done(function(res) {
+                if (res.success) {
+                    // Cập nhật lại số lượng hiển thị
+                    $row.find('.quantity-input').val(res.quantity);
+                   var increaseButtonSelector = '#button-increase-' + sku + '-' +productId ;
+                    if (res.isMax) {          
+                        
+                                $(increaseButtonSelector).prop('disabled', true);      // disable nút tăng
+                    }else{
+                                $(increaseButtonSelector).prop('disabled', false);
+                    }
+                    // Cập nhật tổng số lượng & tổng tiền ở UI
+                } else {
+                    alert(res.message);
+                }
+            });
+            });
+
+            // Giảm số lượng
+         $(document).on('click', '.btn-decrease', function () {
+
+            const $row = $(this).closest('tr');
+            const $input = $row.find('.quantity-input');
+            const productId = $row.data('id');
+            const sku       = $row.data('sku');
+
+            // ––––––– Optimistic UI –––––––
+            const oldVal = parseInt($input.val(), 10) || 0;
+            if (oldVal > 1) {           // Giảm ngay cho “mượt”
+                $input.val(oldVal - 1).trigger('change');
+            }
+         
+            // Vô hiệu hoá nút trong lúc chờ
+            $(this).prop('disabled', true);
+
+            $.post('/Cart/DecreaseQuantity', { productId, sku })
+                .done(function (res) {
+                    if (res.success) {
+                        $input.val(res.quantity);
+                        $('#cartCount').text(res.cartCount);
+                        $('#cartTotal').text(res.cartTotal);
+
+                        if (res.quantity === 0) {
+                            $row.remove();
+                            // $('#subtotal, #discount, #total').text('0 VNĐ');
+                        }
+
+                        // Bật/tắt nút tăng
+                        $('#button-increase-' + sku + '-' + productId)
+                            .prop('disabled', res.isMax);
+                    } else {
+                        alert(res.message || 'Có lỗi xảy ra');
+                        // Hoàn về giá trị cũ nếu backend báo lỗi
+                        $input.val(oldVal);
+                    }
+                })
+                .always(() => {
+                    // Luôn bật lại nút decrease sau khi xong
+                        $('#button-decrease-'+sku+'-'+productId)
+                        .prop('disabled', false);
+                if(oldVal===1){
+
+                   $row.remove();
+                   window.location.reload();
+               }
+                });
+        });
+
+            // Xóa sản phẩm
+            $(document).on('click', '.remove-item', function (e) {
+                e.preventDefault();
+                if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
+                var $row = $(this).closest('tr');
+                var productId = $row.data('id');
+                var sku = $row.data('sku');
+
+                $.post('@Url.Action("RemoveCartItem", "Cart")', { productId, sku })
+                 .done(res => {
+                     if (res.success) {
+                         $row.remove();
+                         updateTotals();
+                     } else {
+                         alert(res.message || 'Xóa sản phẩm thất bại');
+                     }
+                 });
+            });
+
+            // Cập nhật số lượng input, tính lại tổng tiền dòng và tổng giỏ hàng
+            $(document).on('change', '.quantity-input', function () {
+                debugger
+                var $row = $(this).closest('tr');
+                var qty = parseInt($(this).val()) || 1;
+                var max = parseInt($(this).attr('max')) || 10000;
+                if (qty < 1) qty = 1;
+                if (qty > max) qty = max;
+                $(this).val(qty);
+
+
+                var discountPrice = parseInt($row.find('.cart__price').data('discount-price'));
+                var originalPrice = parseInt($row.find('.cart__price').data('original-price'));
+                var price = discountPrice > 0 ? discountPrice : originalPrice;
+                var total = price * qty;
+                $row.find('.cart__total').text(formatCurrency(total) + ' VNĐ');
+                updateTotals();
+            });
+
+            // Cập nhật tổng tiền tạm tính, tổng tiền đơn
+            function updateTotals() {
+                var subtotal = 0;
+                var cartItems = [];
+
+                $('tbody tr').each(function () {
+                    var qty = parseInt($(this).find('.quantity-input').val()) || 0;
+                    var discountPrice = parseInt($(this).find('.cart__price').data('discount-price'));
+                    var originalPrice = parseInt($(this).find('.cart__price').data('original-price'));
+                    var price = discountPrice > 0 ? discountPrice : originalPrice;
+
+                    subtotal += qty * price;
+                });
+                $('#subtotal').text(formatCurrency(subtotal) + ' VNĐ');
+
+                // Lấy giá trị discount hiện tại, loại bỏ ký tự không phải số
+                var discountText = $('#discount').text() || '0 VNĐ';
+                var discount = parseInt(discountText.replace(/[^\d]/g, '')) || 0;
+
+                // Tính tổng tiền sau khi trừ giảm giá
+                var totalAfterDiscount = subtotal - discount;
+                if (totalAfterDiscount < 0) totalAfterDiscount = 0;
+
+                // Cập nhật phần tử #total
+                $('#total').text(formatCurrency(totalAfterDiscount) + ' VNĐ');
+            }
+
+            // Format tiền chuẩn Việt Nam (thousands separator)
+            function formatCurrency(number) {
+                return number.toLocaleString('vi-VN');
+            }
+
+            $.ajax({
+            url: '@Url.Action("UpdateCart", "Cart")',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(cartItems),
+            success: function (res) {
+                if (!res.success) {
+                    console.error('Cập nhật Session thất bại:', res.message);
+                }
+            },
+            error: function () {
+                console.error('Lỗi khi gửi dữ liệu lên server');
+            }
+        });
+        });
+    </script>
+}

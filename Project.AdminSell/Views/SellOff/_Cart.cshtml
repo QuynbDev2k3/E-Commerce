@@ -1,0 +1,413 @@
+﻿@model Project.DbManagement.ViewModels.BillViewModel
+
+@{
+    // ViewData["Title"] = "Cart";
+    <style>
+        #result {
+            position: absolute;
+            width: 100%;
+            max-width: 360px;
+            cursor: pointer;
+            overflow-y: auto;
+            max-height: 400px;
+            box-sizing: border-box;
+            z-index: 1001;
+            padding-top: 20px;
+        }
+    </style>
+}
+<div class="d-flex flex-column">
+    <div class="d-flex flex-row align-items-center" style="background:#e8eaed">
+        <div class="flex-fill ms-2 me-0">
+            <input value="@Model.Id" id="IDHD" hidden/>
+            <span>Mã HD: <span style="font-weight:600">@Model.BillCode</span> </span>
+        </div>
+        <div class="search-product d-flex align-items-center">
+            <div class="search-bar">
+                <form class="search-form d-flex align-items-center" id="customer-search-form">
+                    <input type="text" id="searchClientInput" name="query" style="outline: none; width: 300px; margin-left: 213px;" id="search"
+                           value="@Model.NameClient"
+                           placeholder="Nhập số điện thoại khách hàng" autocomplete="off">
+                    <button type="button" title="Thêm mới khách hàng" data-bs-toggle="modal"
+                            data-bs-target="#themkhachhang"><i class="fa-regular fa-plus" style="color: #a6a8ab;"></i>
+                    </button>
+                    <div id="customer-suggestions" class="list-group position-absolute" style="z-index:1000;"></div>
+                </form>
+                <div id="customer-suggestions" class="list-group position-absolute" style="z-index:1000;"></div>
+            </div>
+        </div>
+    </div>
+    <!--Model Thêm khách hàng-->
+    <div class="modal" id="themkhachhang" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="margin-top: 200px;">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-600" style="margin-left: 140px">Thêm khách hàng</h5>
+                </div>
+                <div class="modal-body">
+                    <form class="row g-3">
+                        <div class="col-md-12">
+                            <label for="inputName5">Tên khách hàng</label>
+                            <input type="text" class="form-control" id="inputTenKhachHang" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="inputPassword5">Điện thoại</label>
+                            <input type="text" class="form-control" id="inputSDT" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="inputEmail5">Email</label>
+                            <input type="email" class="form-control" id="inputEmail">
+                        </div>
+
+                        <div class="col-12">
+                            <label for="inputAddress5">Địa chỉ</label>
+                            <input type="text" class="form-control" id="inputDiaChi" placeholder="">
+                        </div>
+                        <div style="display: none;" class="col-6">
+                            <label for="inputCity">Ngày sinh</label>
+                            <input type="date" class="form-control" id="inputNgaySinh">
+                        </div>
+                        <div style="display: none;" class="col-6">
+                            <label for="inputState">Vãng lai</label>
+                            <fieldset class="d-flex flex-row mb-3 p-2">
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="andanh" value="1" checked>
+                                    <label class="form-check-label" for="gridRadios1">
+                                        Có
+                                    </label>
+                                </div>
+                                <div class="form-check ms-3">
+                                    <input class="form-check-input" type="radio" name="andanh" value="0">
+                                    <label class="form-check-label" for="gridRadios2">
+                                        Không
+                                    </label>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div class="d-flex flex-row text-center">
+                            <button type="button" class="btn btn-secondary w-50 btn-block m-2" data-bs-dismiss="modal">
+                                Bỏ qua
+                            </button>
+                            <button id="btn-saveKH" type="button" class="btn btn-primary w-50 btn-block m-2">Lưu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cthd d-flex flex-column mt-2" style="height:630px;">
+        @{
+            var index = 1;
+            var tsl = 0;
+            var ttien = 0;
+        }
+        <div class="d-flex flex-column mb-2 p-2 overflow-auto scroll-cthd">
+            @foreach (var item in Model.listBillDetails)
+            {
+                <div class="cart-item p-2">
+                    <div class="cell-order">@index</div>
+                    <div class="cell-active">
+                        <img src="@item.Image"
+                             style="display: block; object-fit: cover;background-position: center; height: 50px; width: auto">
+                    </div>
+                    <div class="cell-content" style="margin-left: 20px; display: flex;">
+                        <div class="cell-content-top">
+                            @* <div class="cell-code">Code</div> *@
+                            <div>
+                                <div class="cell-name">@item.Name</div>
+                                <span class="badge bg-danger"
+                                      style="color:#fff; font-weight:600">@item.Color - @item.Size</span>
+                            </div>
+                        </div>
+                        <div class="cell-content-bottom" style="height: 30px; margin-top: 30px;">
+                            <div style="width:30%">
+                                <div class="number" style="display: flex;">
+                                    <span class="minus" data-value="@item.Id"><i
+                                            class="fa-solid fa-chevron-left"></i></span>
+                                    <input type="number" class="changesl" value="@item.Quantity"/>
+                                    <span class="plus" data-value="@item.Id"><i
+                                            class="fa-solid fa-chevron-right"></i></span>
+                                </div>
+                            </div>
+                            <div
+                                class="cell-changeprice2">@(((decimal)(item.Price * item.Quantity)).ToString("n0"))ᴠɴᴅ
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="cell-add">
+                        <button class="btn" onclick="deleteHDCT('@item.Id','@item.IdBill')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                index++;
+                tsl += @item.Quantity;
+                ttien += (int)((decimal)item.Quantity * (decimal)item.Price);
+            }
+        </div>
+    </div>
+    <div class="flex-column bg-light mt-auto align-items-stretch"
+         style="justify-content:center;font-size:24px;">
+        <div class="d-flex flex-row p-2 justify-content-center"
+             style="font-size:18px;background:#e8eaed; margin-top: 5px;">
+            <div class="flex-fill" style="display: flex; margin-top: 15px;">
+                <p>Tổng số lượng sản phẩm: </p>
+                <p style="margin-left: 10px;" id="tsl">@tsl</p>
+            </div>
+            <div class="flex-fill" style="display: flex; margin-top: 15px;">
+                <p>Tổng tiền: </p>
+                <p style="text-align:right; padding-right:70px; color: red; margin-left: 10px;"><b
+                        id="tongtienhang">@ttien.ToString("n0")ᴠɴᴅ</b></p>
+            </div>
+            <button type="button" id="btnThanhToan" class="btn btn-primary fw-bold btn-block"
+                    style="font-size:20px; width:400px">
+                Thanh toán
+            </button>
+        </div>
+    </div>
+
+</div>
+<script>
+    $(document).ready(function () {
+        $.ajaxSetup({cache: false});
+        $('#search').keyup(function () {
+            $('#result').html('');
+            $('#state').val('');
+            var searchField = $('#search').val();
+            var expression = new RegExp(searchField, "i");
+            $.getJSON(`https://localhost:7095/api/KhachHang`, function (data) {
+                $.each(data, function (key, value) {
+                    if (value.sdt.search(expression) != -1 || value.ten.search(expression) != -1) {
+                        $('#result').append('<li class="list-group-item link-class"><input value="' + value.idKhachHang + '" hidden />' + value.ten + ' | <span class="text-muted">' + value.sdt + '</span></li>');
+                    }
+                });
+            });
+        });
+        $('#result').on('click', 'li', function () {
+            var click_text = $(this).text().split('|');
+            var id = $(this).find("input").val();
+            suaKhachHang(id);
+            $('#search').val($.trim(click_text[0]));
+            $("#result").html('');
+        });
+    });
+    var selectedCustomer = null;
+
+    // Tìm kiếm
+    $("#searchClientInput").on("input", function () {
+        var q = $(this).val().trim();
+        if (q.length < 2) {
+            $("#customer-suggestions").empty();
+            return;
+        }
+        $.getJSON('/SellOff/SearchCustomers', {query: q})
+            .done(function (data) {
+                var html = data.map(function (c) {
+                    return `<a href="#" class="list-group-item list-group-item-action"
+                           data-id="${c.id}" data-name="${c.name}" data-phone-number="${c.phoneNumber}">
+                           ${c.name} — ${c.phoneNumber}
+                        </a>`;
+                }).join('');
+                $("#customer-suggestions").html(html).show();
+            });
+    });
+    // Khi click vào input, cũng thực hiện tìm kiếm (gọi lại event input)
+    $("#searchClientInput").on("click", function () {
+        $(this).trigger("input");
+    });
+
+    // Khi chọn 1 khách hàng
+    $("#customer-suggestions").on("click", "a", function (e) {
+        e.preventDefault();
+        var $a = $(this);
+        selectedCustomer = {
+            id: $a.data("id"),
+            name: $a.data("name"),
+            phonenumber: $a.data("phoneNumber")
+        };
+        // Cập nhật input, ẩn suggestion
+        $("#searchClientInput").val(`${selectedCustomer.name} - ${selectedCustomer.phonenumber}`);
+        $("#customer-suggestions").hide();
+
+        // Lưu vào hidden field để gửi cùng form
+        $("#CustomerId").val(selectedCustomer.id);
+    });
+
+    // Ẩn khi click ra ngoài
+    $(document).click(function (e) {
+        if (!$(e.target).closest('#customer-search-form').length) {
+            $("#customer-suggestions").hide();
+        }
+    });
+    // Mở modal thanh toán
+    $("#btnThanhToan").on("click", function () {
+        var activeTab = $(".tabs-box .tab").filter(".active");
+        var elementValue = activeTab.find("span").attr("value");
+        console.log(elementValue);
+
+        // Load partial view và sau khi load xong thì cập nhật thông tin khách hàng
+        $("#thanhtoanbody").load("/SellOff/ViewPayment/" + elementValue, function () {
+            // Gọi sau khi load xong _pay.cshtml
+            if (selectedCustomer) {
+                $("#idkh").text(selectedCustomer.id);
+                $("#tenkh").text(selectedCustomer.name);
+                $("#sdtkh").text(selectedCustomer.phonenumber);
+            }
+
+            // Mở modal sau khi load xong
+            $("#thanhtoan").modal("show");
+        });
+    });
+
+    var sdtcus;
+    $("#searchClientInput").val(sdtcus);
+    //Thêm khách hàng
+    $("#btn-saveKH").on("click", function () {
+        var tenkh = $("#inputTenKhachHang").val();
+        var sdt = $("#inputSDT").val();
+        var email = $("#inputEmail").val();
+        var dchi = $("#inputDiaChi").val();
+        var dob = $("#inputNgaySinh").val();
+        var adanh = $('input[name="andanh"]:checked').val();
+        var idhd = $("#IDHD").val();
+
+        if (tenkh === "") {
+            toastr.warning("Tên khách hàng không được để trống!", "Thông báo", { timeOut: 1000 });
+            $("#inputTenKhachHang").focus();
+            return;
+        }
+        var nameRegex = /^[\p{L}\s]+$/u;
+        if (!nameRegex.test(tenkh)) {
+            toastr.warning("Tên khách hàng không đúng định dạng!", "Thông báo", { timeOut: 1000 });
+            $("#inputTenKhachHang").focus();
+            return;
+        }
+        // Kiểm tra số điện thoại
+        var phoneRegex = /^0\d{8,11}$/;
+        var digitsOnlyRegex = /^\d+$/;
+
+        if (sdt === "" || !digitsOnlyRegex.test(sdt) || !phoneRegex.test(sdt)) {
+            toastr.warning("Số điện thoại không hợp lệ!", "Thông báo", { timeOut: 1000 });
+            $("#inputSDT").focus();
+            return;
+        }
+        if (email !== "" || email !== null) {
+            var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            if (!emailRegex.test(email)) {
+                toastr.warning("Định dạng email không hợp lệ!", "Thông báo", { timeOut: 1000 });
+                $("#inputEmail").focus();
+                return;
+            }
+        }
+        var khachHang = {
+            Id: idhd,
+            Name: tenkh,
+            IsAnonymous: adanh,
+            NgaySinh: dob,
+            Email: email,
+            Address: dchi,
+            PhoneNumber: sdt,
+            Password: 123456
+        };
+        $.ajax({
+            url: "/SellOff/AddCustomers",
+            async: false,
+            type: 'POST',
+            dataType: 'json',
+            data: khachHang,
+            success: function (response) {
+                if (response.success) {
+                    gethdct(idhd);
+                    $("#themkhachhang").modal("hide");
+                    toastr.success('Thêm khách hàng thành công', "Thông báo", { timeOut: 1000 });
+                    sdtcus = sdt;
+                } else {
+                    toastr.error('Thêm khách hàng thất bại: ' + (response.message), 'Thông báo', { timeOut: 1000 });
+                }
+            },
+            error: function (response) {
+                toastr.error('Thêm khách hàng thất bại', 'Thông báo', {timeOut: 1000});
+            }
+        });
+    })
+
+    //Update số lượng
+    function UpdateSL(idbilldeltails, quantity) {
+        $.ajax({
+            url: "/SellOff/UpdateQuantity",
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                idbilldeltails: idbilldeltails,
+                quantity: quantity,
+            },
+            success: function (response) {
+                if (response.success) {
+                    gethdct('@Model.Id');
+                    toastr.success('Cập nhật số lượng thành công', 'Thông báo', {timeOut: 300});
+                } else {
+                    toastr.error(response.message || 'Cập nhật số lượng thất bại', 'Thông báo', {timeOut: 300});
+                    gethdct('@Model.Id');
+                }
+            },
+            error: function (xhr, status, error) {
+                toastr.error('Cập nhật thất bại', 'Thông báo', {timeOut: 300});
+            }
+        });
+    }
+
+    // Tăng giảm số lượng
+    $('.minus').click(function () {
+        var idbilldetails = $(this).data('value');
+        var $input = $(this).parent().find('input');
+        var count = parseInt($input.val()) - 1;
+        if (count <= 1) {
+            toastr.warning('Số lượng không thể nhỏ hơn 1!', 'Thông báo', { timeOut: 1000 });
+            $input.val(1);
+            return false;
+        }
+        count = count < 1 ? 1 : count;
+        $input.val(count);
+        $input.change();
+        UpdateSL(idbilldetails, count);
+        return false;
+    });
+    $('.plus').click(function () {
+        var idbilldetails = $(this).data('value');
+        var $input = $(this).parent().find('input');
+        var count = parseInt($input.val()) + 1;
+        $input.val(count);
+        $input.change();
+        UpdateSL(idbilldetails, count);
+        return false;
+    });
+    //Thay đổi số lượng
+    $('.changesl').on('focus', function () {
+        $(this).data('currentCount', $(this).val());
+    });
+    $('.changesl').on('blur', function () {
+        var idbilldetails = $(this).parent().find('span').data('value');
+        let currentCount = $(this).data('currentCount');
+        let count = $(this).val().trim();
+        
+        // Nếu input rỗng hoặc không phải số hợp lệ thì không làm gì cả
+        if (count === '' || isNaN(count)) {
+            // Tùy bạn muốn reset về giá trị cũ hay thông báo lỗi
+            toastr.warning('Số lượng không hợp lệ!', 'Thông báo', { timeOut: 1000 });
+            $(this).val(currentCount); // hoặc giá trị trước đó nếu bạn lưu lại
+            return;
+        }
+        if (parseInt(count) <= 0) {
+            // Tùy bạn muốn reset về giá trị cũ hay thông báo lỗi
+            toastr.warning('Số lượng phải lớn hơn 0!', 'Thông báo', { timeOut: 1000 });
+            $(this).val(currentCount); // hoặc giá trị trước đó nếu bạn lưu lại
+            return;
+        }
+
+        UpdateSL(idbilldetails, parseInt(count));
+    });
+</script>

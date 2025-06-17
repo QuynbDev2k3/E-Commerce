@@ -1,0 +1,69 @@
+﻿@using Project.DbManagement.Entity
+@model List<Project.DbManagement.Voucher>
+
+<div class="container">
+    <div class="row g-3">
+        @foreach (var voucher in Model)
+        {
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="voucher-card border rounded shadow-sm h-100 d-flex flex-column">
+                    <div class="d-flex bg-danger">
+                        <img src="@(string.IsNullOrEmpty(voucher.ImageUrl) ? "https://paytechlaw.com/wp-content/uploads/190414_Corona-Voucher_Artenauta-800x546.png" : voucher.ImageUrl)" alt="Image Voucher" class="col-3" style="object-fit:cover;">
+
+                        <div class="col-9 voucher-left text-white text-center p-2">
+                            <div class="label text-white small"
+                                 style="max-width: 100%;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                display: inline-block;">
+                                @voucher.VoucherName
+                            </div>
+                            <div>
+                                <span class="p-1 small text-white" style="background-color:black;">
+                                    @voucher.Code
+                                </span>
+                            </div>
+
+                            @if (voucher.DiscountAmount != null)
+                            {
+                                <div class="desc small" style="margin-bottom:18px;">
+                                    Giảm tới
+                                    @(voucher.DiscountAmount.Value.ToString("#,##0.#"))
+                                    VNĐ
+                                </div>
+                            }
+
+                            @if (voucher.DiscountPercentage != null)
+                            {
+                                <div class="desc small">
+                                    Giảm tới
+                                    @(voucher.DiscountPercentage.Value.ToString("#,##0.#"))
+                                    %
+                                </div>
+                                <div class="desc small">
+                                    (Tối đa:
+                                    @(voucher.MaxDiscountAmount.Value.ToString("#,##0.#"))
+                                    VNĐ)
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                    <div class="voucher-right p-2 position-relative flex-grow-1 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="badge border bg-dark mb-1 small text-white p-1">Áp dụng toàn shop</div>
+                            <p class="mb-0 small">Đơn Tối Thiểu @(voucher.MinimumOrderAmount.Value.ToString("#,##0.#")) VNĐ</p>
+
+                            @{
+                                var vnTime = TimeZoneInfo.ConvertTimeFromUtc(voucher.EndDate.Value, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+                            }
+                            <p class="mb-2 small">Hết hạn vào @vnTime.ToString("dd:MM:yyyy HH:mm")</p>
+                        </div>
+                        <button class="btn btn-sm btn-danger mt-2 w-100 save-voucher-btn" data-voucher-id="@voucher.Id">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
