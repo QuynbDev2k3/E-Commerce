@@ -9,6 +9,19 @@
 
 ---
 
+## 🖼 Hình ảnh giao diện
+
+### Trang quản trị
+![Admin Page](./Screenshots/Admin.png)
+
+### Bán hàng online
+![Online](./Screenshots/Online.png)
+
+### Bán hàng offline
+![Offline](./Screenshots/Offline.png)
+
+---
+
 ## 📅 Stack công nghệ
 
 * **Backend**: ASP.NET Core (.NET 8)
